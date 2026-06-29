@@ -1,0 +1,35 @@
+Vulnerability: Open Redirect
+
+Description:
+The application provides a "redirect" page intended to forward users
+to known social media links from the footer:
+
+  index.php?page=redirect&site=facebook
+  index.php?page=redirect&site=twitter
+  index.php?page=redirect&site=instagram
+
+The "site" parameter is used to build the redirect target without
+validating it against an allow-list of trusted destinations.
+
+Exploitation:
+By supplying an arbitrary external URL as the "site" parameter value,
+the application redirects the user to that attacker-controlled
+destination instead of one of the intended social media sites.
+
+Payload used:
+  index.php?page=redirect&site=https://example.com
+
+Result:
+The application accepted the arbitrary URL and confirmed the
+vulnerability, revealing the challenge flag.
+
+Root cause:
+User-controlled input is used directly to build a redirect target
+without validating it against a fixed list of allowed destinations.
+This can be abused in phishing attacks: an attacker can send victims
+a link that appears to point to a trusted domain (e.g. the legitimate
+site's own URL) but actually redirects them to a malicious page,
+since the redirect itself originates from a trusted-looking domain.
+
+Flag obtained:
+b9e775a0291fed784a2d9680fcfad7edd6b8cdf87648da647aaf4bba288bcab3

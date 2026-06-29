@@ -1,0 +1,39 @@
+Vulnerability: Broken Access Control / Client-Side Trust (Insecure Direct Object Reference via Cookie)
+
+Description:
+The application sets a cookie named "I_am_admin" containing an MD5 hash
+of a boolean string used to determine the user's privilege level.
+
+
+Original cookie value:
+I_am_admin = 68934a3e9455fa72420237eb05902327
+
+Step 1 - Identify hash type:
+The value is 32 hex characters, consistent with MD5.
+
+Step 2 - Test candidate plaintexts:
+$ echo -n "false" | md5sum
+68934a3e9455fa72420237eb05902327  -
+
+This confirms the cookie currently encodes "false" (not admin).
+
+
+Step 3 - Compute the opposite value:
+$ echo -n "true" | md5sum
+b326b5062b2f0e69046810717534cb09  -
+
+Step 4 - Exploit:
+Using browser DevTools (Application > Cookies), the cookie value was
+replaced with the MD5 hash of "true". After reloading the page, the
+application granted admin access and revealed the flag.
+
+
+Root cause:
+The server trusts a client-controlled cookie for an authorization
+decision instead of validating session state server-side. Since the
+hashing algorithm and expected plaintext values are guessable/predictable,
+an attacker can forge a valid "admin" cookie without authentication.
+
+Flag obtained:
+df2eb4ba34ed059a1e3e89ff4dfc13445f104a1a52295214def1c4fb1693a5c3
+EOF

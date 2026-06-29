@@ -1,0 +1,41 @@
+Vulnerability: Improper Input Validation (Client-Side Only Restriction)
+
+Description:
+The Survey page (index.php?page=survey) presents a vote form for each
+subject. The vote value is selected via an HTML <select> dropdown,
+restricted in the markup to integer values 1 through 10:
+
+  <SELECT name="valeur" onChange='javascript:this.form.submit();'>
+    <option value="1">1</option>
+    ...
+    <option value="10">10</option>
+  </SELECT>
+
+This restriction exists only in the HTML/client side. The server does
+not independently validate that "valeur" falls within the expected
+range, nor does it validate it is a sane vote value at all.
+
+Exploitation:
+By crafting a raw HTTP POST request directly (bypassing the web form
+and its UI restrictions), an arbitrary value was submitted for the
+"valeur" parameter, well outside the intended 1-10 range:
+
+Payload:
+  curl -i -X POST "http://localhost:8080/index.php?page=survey" \
+    -d "sujet=2&valeur=999999"
+
+Result:
+The server accepted and processed the out-of-range value without
+validation, and the application responded with a success message and
+the challenge flag directly in the HTML.
+
+Root cause:
+The application relies solely on client-side restrictions (HTML
+<select> options) to constrain user input, with no corresponding
+validation performed on the server. Any value can be submitted by an
+attacker bypassing the browser UI (e.g. via curl, Burp Suite, or
+modified JavaScript), since client-side controls are not a substitute
+for server-side validation.
+
+Flag obtained:
+03a944b434d5baff05f46c4bede5792551a2595574bcafc9a6e25f67c382ccaa
